@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from retrieve import hybrid, rerank
 from retrieve.policy import load_policy
+from qa.generate import generate_answer
 
 app = FastAPI(title="Robot RAG")
 POLICY = load_policy()
@@ -27,4 +28,9 @@ def search(query: str, audience_level: str | None = None, robot_model: str | Non
     results = hybrid.retrieve(query, filters)
     if POLICY.get("rerank", {}).get("enabled", False):
         results = rerank.rerank(query, results)
-    return {"results": results}
+
+    answer_payload = generate_answer(query, results)
+
+    response: dict[str, object] = {"results": results}
+    response.update(answer_payload)
+    return response

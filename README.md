@@ -20,6 +20,12 @@ A local-first RAG that unifies PDFs, PPTX, Excel, and images into consistent, re
   python3.11 -m venv .venv && source .venv/bin/activate
   pip install -r requirements.txt
   ```
+- Configure OpenAI access (for answer generation):
+  ```bash
+  export OPENAI_API_KEY="<your key>"
+  # optional override if you prefer a different model
+  export OPENAI_RAG_MODEL="gpt-4o-mini"
+  ```
 
 ### 1) Bring up local services
 
@@ -60,6 +66,55 @@ Fill in the stub modules under `ingestion/`, `processing/`, `embeddings/`, `inde
 ### 5) Evaluate
 
 See `evaluation/EVAL.md` for a tiny harness (nDCG/Recall) using `evaluation/gold.csv`.
+
+---
+
+### Command-Line Cheat Sheet
+
+**Environment setup**
+- `python3 -m venv Cobotiq && source Cobotiq/bin/activate` — create/activate the project virtualenv.
+- `pip install -r requirements.txt` — install the mandatory dependencies.
+- `pip install openpyxl` — enable XLSX ingestion (required for spreadsheets).
+
+**Platform operations**
+- `make up` — start Qdrant and Meilisearch.
+- `make down` — stop the services.
+- `make init-meili` — apply Meilisearch index + settings from `configs/`.
+- `make init-qdrant` — create the Qdrant named-vector collection.
+
+**Pipeline stages**
+- `make ingest` — run the full ingestion pipeline (covers `ingestion/`, `processing/`, `embeddings/`, `index/`, `retrieve/` policies).
+- `python ingest.py --skip-index` — generate `data/processed/*.jsonl` without pushing to Qdrant/Meilisearch.
+- `python - <<'PY'` snippets — lightweight way to exercise individual modules, for example:
+  ```bash
+  python - <<'PY'
+  from ingestion.pdf_parser import parse_pdf
+  from ingestion.normalize import normalize
+  elements = list(parse_pdf("path/to/doc.pdf"))
+  normalized = list(normalize(elements))
+  print(len(normalized))
+  PY
+  ```
+
+**Index maintenance**
+- `curl -H "Authorization: Bearer $MEILI_MASTER_KEY" -X DELETE http://localhost:7700/indexes/robot_elements` — reset Meilisearch (if you need a clean slate).
+- `curl -X DELETE http://localhost:6333/collections/robot_elements` — reset Qdrant before re-running `make init-*`.
+
+---
+
+### Querying Locally
+
+1. With services running and indexes populated, start the API:
+   ```bash
+   source Cobotiq/bin/activate
+   uvicorn app.api:app --reload
+   ```
+2. Open `http://localhost:8000/docs` in a browser to use the interactive FastAPI UI (acts as a simple “chat box”). Submit queries to the `/search` endpoint with optional `audience_level` and `robot_model` parameters to verify that indexed documents are being retrieved. When `OPENAI_API_KEY` is set, the response includes an `answer` string plus `citations` for the supporting passages.
+3. Alternatively, use the command line:
+   ```bash
+   curl "http://localhost:8000/search?query=torque%20m3%20screw"
+   ```
+   The JSON response includes the fused + reranked hits, a generated answer (when configured), and citation snippets.
 
 ---
 
