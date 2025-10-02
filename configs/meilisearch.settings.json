@@ -1,0 +1,22 @@
+{
+  "filterableAttributes": [
+    "robot_model",
+    "audience_level",
+    "category",
+    "software_version",
+    "hardware_rev",
+    "priority",
+    "effective_date"
+  ],
+  "sortableAttributes": ["effective_date", "priority"],
+  "synonyms": {
+    "dock": ["charging station", "docking station"],
+    "ipc": ["upper computer", "industrial pc"],
+    "e-stop": ["emergency stop", "estop"],
+    "brake release": ["manual release"]
+  },
+  "rankingRules": [
+    "words", "typo", "proximity", "attribute", "sort", "exactness",
+    "priority:desc", "effective_date:desc"
+  ]
+}

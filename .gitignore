@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+Cobotiq/
+.venv/
+venv/
+ENV/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Environment files
+.env
+.env.*
+
+# Local data stores & caches
+local_data/
+data/raw/
+data/processed/
+
+# IDE/tooling
+.vscode/
+.idea/
+*.code-workspace
+
+# Testing caches
+.pytest_cache/
+.mypy_cache/
+coverage/
+
+# Misc
+.DS_Store
+*.log

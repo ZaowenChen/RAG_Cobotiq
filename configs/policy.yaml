@@ -1,0 +1,34 @@
+# Retrieval policy for demo (read by retrieve/policy.py)
+
+prefilter:
+  default_audience_level: operator
+  default_robot_model: generic
+
+rrf:
+  k: 60
+
+boosts:
+  priority:
+    high: 0.15
+    normal: 0.0
+    low: -0.05
+  recency:
+    k: 0.0025   # slope for logistic decay over days
+    max: 0.10
+
+rerank:
+  enabled: true
+  model: cross-encoder/ms-marco-MiniLM-L6-v2
+  top_k: 40
+  enable_for_queries_matching:
+    - "(how to|procedure|calibrate|torque|adjust|replace|install|tighten|wiring|port)"
+
+image_search:
+  enabled: true
+  trigger_keywords:
+    - "diagram"
+    - "figure"
+    - "wiring"
+    - "port"
+    - "layout"
+  top_k: 40

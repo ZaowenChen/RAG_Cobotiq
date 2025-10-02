@@ -1,0 +1,6 @@
+query,robot_model,audience_level,category,doc_hint
+how to torque m3 screw on lidar bracket,S50,technician,sop,Lidar Calibration v1.4
+emergency stop reset after collision,generic,operator,safety,Safety SOP 2025
+wire map for ipc to motor driver v40,V40,technician,hardware,Wiring Diagram v40
+release notes s50 aio 1.4.2,S50,operator,release_notes,Release Notes AIO 1.4.2
+pnc alert code 0x21 recovery,generic,technician,pnc,PNC Troubleshooting

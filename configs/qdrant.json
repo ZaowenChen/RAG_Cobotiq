@@ -1,0 +1,9 @@
+{
+  "vectors": {
+    "text": { "size": 384, "distance": "Cosine" },
+    "image": { "size": 512, "distance": "Cosine" }
+  },
+  "hnsw_config": { "m": 16, "ef_construct": 64 },
+  "optimizers_config": { "default_segment_number": 2 },
+  "on_disk_payload": true
+}

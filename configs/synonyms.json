@@ -1,0 +1,7 @@
+{
+  "dock": ["charging station", "docking station"],
+  "ipc": ["upper computer", "industrial pc", "host pc"],
+  "lidar": ["laser scanner"],
+  "imu": ["inertial sensor"],
+  "battery pack": ["power pack", "battery module"]
+}

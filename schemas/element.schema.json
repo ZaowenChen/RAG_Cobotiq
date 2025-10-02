@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RobotElement",
+  "type": "object",
+  "required": ["id","doc_id","doc_title","doc_type","element_type","content_text","source_uri"],
+  "properties": {
+    "id": {"type":"string"},
+    "doc_id": {"type":"string"},
+    "doc_title": {"type":"string"},
+    "doc_type": {"enum":["pdf","pptx","xlsx","image"]},
+    "element_type": {"enum":["paragraph","step","table_row","figure","caption","note"]},
+    "content_text": {"type":"string"},
+    "robot_model": {"type":"string"},
+    "software_version": {"type":"string"},
+    "hardware_rev": {"type":"string"},
+    "audience_level": {"enum":["intro","operator","technician","engineer","admin"]},
+    "category": {"enum":["sop","pnc","software","hardware","release_notes","safety"]},
+    "priority": {"enum":["high","normal","low"]},
+    "effective_date": {"type":"string","format":"date"},
+    "replaces": {"type":"string"},
+    "source_uri": {"type":"string"},
+    "text_vector": {"type":["array","null"],"items":{"type":"number"}},
+    "image_vector": {"type":["array","null"],"items":{"type":"number"}},
+    "ocr_text": {"type":["string","null"]}
+  }
+}

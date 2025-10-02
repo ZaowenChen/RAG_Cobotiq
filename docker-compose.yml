@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: robotrag-qdrant
+    ports: ["6333:6333"]
+    volumes:
+      - ./local_data/qdrant:/qdrant/storage
+    environment:
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: robotrag-meili
+    ports: ["7700:7700"]
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-dev_master_key}
+    volumes:
+      - ./local_data/meili:/meili_data
