@@ -109,8 +109,9 @@ See `evaluation/EVAL.md` for a tiny harness (nDCG/Recall) using `evaluation/gold
    source Cobotiq/bin/activate
    uvicorn app.api:app --reload
    ```
-2. Open `http://localhost:8000/docs` in a browser to use the interactive FastAPI UI (acts as a simple “chat box”). Submit queries to the `/search` endpoint with optional `audience_level` and `robot_model` parameters to verify that indexed documents are being retrieved. When `OPENAI_API_KEY` is set, the response includes an `answer` string plus `citations` for the supporting passages.
-3. Alternatively, use the command line:
+2. Visit `http://localhost:8000/` for the lightweight chat UI (styled after ChatGPT). It supports audience/model selectors, streams answers, and shows citation links inline.
+3. Open `http://localhost:8000/docs` if you prefer the Swagger interface for testing the raw `/search` endpoint.
+4. Alternatively, use the command line:
    ```bash
    curl "http://localhost:8000/search?query=torque%20m3%20screw"
    ```

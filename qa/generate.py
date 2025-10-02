@@ -33,11 +33,11 @@ def _format_context(results: List[Dict[str, Any]], top_k: int) -> List[Dict[str,
         citation_id = f"[{idx}]"
         formatted.append(
             {
-                "citation_id": citation_id,
-                "doc_title": result.get("doc_title", ""),
-                "source_uri": result.get("source_uri"),
-                "content": snippet,
-                "element_type": result.get("element_type"),
+                "citation_id": str(citation_id),
+                "doc_title": str(result.get("doc_title", "")),
+                "source_uri": str(result.get("source_uri") or ""),
+                "content": str(snippet),
+                "element_type": str(result.get("element_type") or ""),
             }
         )
     return formatted
@@ -105,14 +105,16 @@ def generate_answer(
 
     try:
         client = _client()
-        response = client.responses.create(
+        response = client.chat.completions.create(
             model=selected_model,
-            input=[
+            messages=[
                 {"role": "system", "content": "You answer strictly from supplied context."},
                 {"role": "user", "content": prompt},
             ],
+            temperature=float(os.getenv("OPENAI_RAG_TEMPERATURE", "0")),
+            max_tokens=int(os.getenv("OPENAI_RAG_MAX_TOKENS", "400")),
         )
-        answer_text = response.output_text.strip()
+        answer_text = (response.choices[0].message.content or "").strip()
     except Exception as exc:  # pragma: no cover - network or API issues
         LOGGER.error("OpenAI answer generation failed: %s", exc)
         return {

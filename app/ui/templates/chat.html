@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robot RAG Chat</title>
+    <link rel="stylesheet" href="/ui/static/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Robot RAG Assistant</h1>
+        <p class="subtitle">Ask questions about your robot docs. Answers cite the sources.</p>
+      </header>
+
+      <main>
+        <section id="chat-container">
+          <div id="messages"></div>
+        </section>
+        <form id="input-form">
+          <div class="inputs">
+            <textarea
+              id="user-input"
+              name="message"
+              rows="2"
+              placeholder="Ask a question about S50 procedures, release notes, wiring, etc."
+              required
+            ></textarea>
+            <div class="selectors">
+              <label>
+                Audience Level
+                <select id="audience-level">
+                  <option value="">Auto</option>
+                  <option value="operator">Operator</option>
+                  <option value="technician">Technician</option>
+                  <option value="engineer">Engineer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label>
+                Robot Model
+                <select id="robot-model">
+                  <option value="">Auto</option>
+                  <option value="S50">S50</option>
+                  <option value="V40">V40</option>
+                  <option value="generic">Generic</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <button type="submit" id="send-button">Send</button>
+        </form>
+      </main>
+    </div>
+
+    <template id="message-template">
+      <div class="message">
+        <div class="avatar"></div>
+        <div class="bubble">
+          <div class="content"></div>
+          <div class="citations"></div>
+        </div>
+      </div>
+    </template>
+
+    <script src="/ui/static/chat.js" defer></script>
+  </body>
+</html>
