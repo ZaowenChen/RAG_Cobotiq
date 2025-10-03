@@ -6,25 +6,70 @@ const robotEl = document.getElementById("robot-model");
 const sendButton = document.getElementById("send-button");
 const template = document.getElementById("message-template");
 
-function appendMessage({ role, content, citations }) {
+function renderCitations(container, citations = []) {
+  if (!container) return;
+  container.innerHTML = "";
+  if (!citations.length) {
+    container.style.display = "none";
+    return;
+  }
+  citations.forEach((citation) => {
+    const div = document.createElement("div");
+    div.className = "citation";
+    const link = document.createElement("a");
+    link.href = citation.source_uri || "#";
+    link.textContent = `${citation.citation_id} ${citation.doc_title}`;
+    link.target = "_blank";
+    div.appendChild(link);
+    container.appendChild(div);
+  });
+  container.style.display = "block";
+}
+
+function renderFigures(container, figures = []) {
+  if (!container) return;
+  container.innerHTML = "";
+  if (!figures.length) {
+    container.style.display = "none";
+    return;
+  }
+
+  figures.forEach((figure) => {
+    const card = document.createElement("div");
+    card.className = "figure-card";
+
+    if (figure.media_url) {
+      const img = document.createElement("img");
+      img.src = figure.media_url;
+      img.alt = figure.caption || figure.doc_title || "Figure";
+      img.loading = "lazy";
+      card.appendChild(img);
+    }
+
+    const caption = document.createElement("div");
+    caption.className = "caption";
+    caption.textContent = figure.caption || "Figure";
+    card.appendChild(caption);
+
+    const sourceLink = document.createElement("a");
+    sourceLink.href = figure.source_uri || "#";
+    sourceLink.target = "_blank";
+    sourceLink.textContent = figure.doc_title || "Open source";
+    card.appendChild(sourceLink);
+
+    container.appendChild(card);
+  });
+
+  container.style.display = "grid";
+}
+
+function appendMessage({ role, content, citations = [], figures = [] }) {
   const clone = template.content.firstElementChild.cloneNode(true);
   clone.classList.add(role === "user" ? "user" : "bot");
   clone.querySelector(".content").textContent = content;
 
-  const citationsEl = clone.querySelector(".citations");
-  citationsEl.innerHTML = "";
-  if (citations && citations.length) {
-    citations.forEach((citation) => {
-      const div = document.createElement("div");
-      div.className = "citation";
-      const link = document.createElement("a");
-      link.href = citation.source_uri || "#";
-      link.textContent = `${citation.citation_id} ${citation.doc_title}`;
-      link.target = "_blank";
-      div.appendChild(link);
-      citationsEl.appendChild(div);
-    });
-  }
+  renderCitations(clone.querySelector(".citations"), citations);
+  renderFigures(clone.querySelector(".figures"), figures);
 
   messagesEl.appendChild(clone);
   messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -57,20 +102,11 @@ async function sendMessage(event) {
 
     const answer = data.answer || "No answer generated. See retrieved passages below.";
     const citations = data.citations || [];
+    const figures = data.figures || [];
 
     pending.querySelector(".content").textContent = answer;
-    const citationsEl = pending.querySelector(".citations");
-    citationsEl.innerHTML = "";
-    citations.forEach((citation) => {
-      const div = document.createElement("div");
-      div.className = "citation";
-      const link = document.createElement("a");
-      link.href = citation.source_uri || "#";
-      link.textContent = `${citation.citation_id} ${citation.doc_title}`;
-      link.target = "_blank";
-      div.appendChild(link);
-      citationsEl.appendChild(div);
-    });
+    renderCitations(pending.querySelector(".citations"), citations);
+    renderFigures(pending.querySelector(".figures"), figures);
 
     if (data.error) {
       const banner = document.createElement("div");
@@ -80,23 +116,17 @@ async function sendMessage(event) {
     }
 
     if (!data.answer && data.results) {
-      const citationsEl = pending.querySelector(".citations");
-      const top = data.results.slice(0, 3);
-      top.forEach((item, index) => {
-        const div = document.createElement("div");
-        div.className = "citation";
-        const link = document.createElement("a");
-        link.href = item.source_uri || "#";
-        link.textContent = `[R${index + 1}] ${item.doc_title}`;
-        link.target = "_blank";
-        div.appendChild(link);
-        citationsEl.appendChild(div);
-      });
+      const fallback = data.results.slice(0, 3).map((item, index) => ({
+        citation_id: `[R${index + 1}]`,
+        doc_title: item.doc_title,
+        source_uri: item.source_uri,
+      }));
+      renderCitations(pending.querySelector(".citations"), fallback);
     }
   } catch (error) {
     pending.querySelector(".content").textContent = String(error);
-    const citationsEl = pending.querySelector(".citations");
-    citationsEl.innerHTML = "";
+    renderCitations(pending.querySelector(".citations"), []);
+    renderFigures(pending.querySelector(".figures"), []);
   } finally {
     sendButton.disabled = false;
   }
@@ -113,4 +143,5 @@ appendMessage({
   role: "bot",
   content: "Hi! Ask me about release notes, troubleshooting, or wiring diagrams. I cite the docs I use.",
   citations: [],
+  figures: [],
 });

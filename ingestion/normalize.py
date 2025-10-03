@@ -69,8 +69,21 @@ def normalize(
             "ocr_text": element.get("metadata", {}).get("ocr_text"),
         }
 
-        if element.get("image_path"):
-            normalized["image_path"] = element.get("image_path")
+        for key in (
+            "image_path",
+            "media_path",
+            "image_sha256",
+            "image_width",
+            "image_height",
+            "image_mime_type",
+            "caption",
+            "caption_model",
+            "caption_confidence",
+            "caption_source",
+            "alt_text",
+        ):
+            if element.get(key) is not None:
+                normalized[key] = element.get(key)
 
         if element.get("order") is not None:
             normalized["order"] = element.get("order")

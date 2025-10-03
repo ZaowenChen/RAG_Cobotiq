@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import logging
-import math
 import os
 from collections import defaultdict
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from meilisearch import Client as MeiliClient
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 
+from embeddings.image_embed import embed_text_for_images
 from embeddings.text_embed import embed_text
 from retrieve.policy import load_policy
 
@@ -135,9 +135,77 @@ def _qdrant_search(query: str, filters: Dict[str, str], limit: int) -> List[Dict
     return results
 
 
-def _reciprocal_rank_fusion(result_sets: Iterable[List[Dict[str, Any]]], k: int) -> List[Dict[str, Any]]:
+def _image_search_params(query: str) -> tuple[bool, float]:
+    config = _POLICY.get("image_search", {})
+    if not config.get("enabled"):
+        return False, 0.0
+
+    primary_weight = float(config.get("rrf_weight", 0.6))
+    fallback_weight = float(config.get("rrf_weight_fallback", primary_weight * 0.4))
+    triggers = config.get("trigger_keywords") or []
+
+    if not triggers:
+        return True, primary_weight
+
+    lowered = query.lower()
+    for keyword in triggers:
+        if keyword.lower() in lowered:
+            return True, primary_weight
+
+    if config.get("fallback_enabled", True):
+        return True, fallback_weight
+    return False, 0.0
+
+
+def _qdrant_image_search(query: str, filters: Dict[str, str], limit: int) -> List[Dict[str, Any]]:
+    query_embedding = embed_text_for_images([query])
+    if not query_embedding:
+        return []
+
+    try:
+        client = _qdrant_client()
+        hits = client.search(
+            collection_name=_COLLECTION_NAME,
+            query_vector={"name": "image", "vector": query_embedding[0]},
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+            query_filter=_qdrant_filter(filters),
+        )
+    except Exception as exc:  # pragma: no cover - service might be offline
+        LOGGER.error("Qdrant image query failed: %s", exc)
+        return []
+
+    results: List[Dict[str, Any]] = []
+    for point in hits:
+        payload = dict(point.payload or {})
+        payload.setdefault("id", point.id)
+        if not payload.get("image_path") and not payload.get("media_path"):
+            continue
+        results.append(
+            {
+                "id": str(point.id),
+                "score": float(point.score or 0.0),
+                "source": "qdrant_image",
+                "payload": payload,
+            }
+        )
+    return results
+
+
+def _reciprocal_rank_fusion(
+    result_sets: Iterable[List[Dict[str, Any]]],
+    k: int,
+    *,
+    weights: Optional[List[float]] = None,
+) -> List[Dict[str, Any]]:
     aggregated: Dict[str, Dict[str, Any]] = {}
-    for results in result_sets:
+    for index, results in enumerate(result_sets):
+        weight = 1.0
+        if weights and index < len(weights):
+            weight = weights[index]
+        if not results:
+            continue
         for rank, result in enumerate(results, start=1):
             doc_id = str(result["id"])
             entry = aggregated.setdefault(
@@ -150,7 +218,7 @@ def _reciprocal_rank_fusion(result_sets: Iterable[List[Dict[str, Any]]], k: int)
                     "sources": set(),
                 },
             )
-            entry["rrf_score"] += 1.0 / (k + rank)
+            entry["rrf_score"] += weight * (1.0 / (k + rank))
             entry["scores"][result["source"]] = result["score"]
             entry["sources"].add(result["source"])
 
@@ -175,8 +243,21 @@ def retrieve(query: str, filters: Dict[str, str]) -> List[Dict[str, Any]]:
     meili_results = _meili_search(query, merged_filters, limit)
     qdrant_results = _qdrant_search(query, merged_filters, limit)
 
-    if not meili_results and not qdrant_results:
+    image_config = _POLICY.get("image_search", {})
+    run_images, image_weight = _image_search_params(query)
+    image_results: List[Dict[str, Any]] = []
+    if run_images:
+        image_limit = int(image_config.get("top_k", limit))
+        image_results = _qdrant_image_search(query, merged_filters, image_limit)
+
+    if not meili_results and not qdrant_results and not image_results:
         return []
 
-    fused = _reciprocal_rank_fusion([meili_results, qdrant_results], rrf_k)
+    result_sets: List[List[Dict[str, Any]]] = [meili_results, qdrant_results]
+    weights: List[float] = [1.0, 1.0]
+    if image_results:
+        result_sets.append(image_results)
+        weights.append(image_weight)
+
+    fused = _reciprocal_rank_fusion(result_sets, rrf_k, weights=weights)
     return fused

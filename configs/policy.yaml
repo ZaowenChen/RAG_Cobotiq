@@ -32,3 +32,6 @@ image_search:
     - "port"
     - "layout"
   top_k: 40
+  rrf_weight: 0.6
+  rrf_weight_fallback: 0.25
+  fallback_enabled: true

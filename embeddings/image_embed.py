@@ -25,10 +25,13 @@ def _device() -> torch.device:
 
 @lru_cache(maxsize=1)
 def _load_model():
-    model, preprocess, _ = open_clip.create_model_and_transforms(_MODEL_NAME, pretrained=_PRETRAINED)
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        _MODEL_NAME, pretrained=_PRETRAINED
+    )
+    tokenizer = open_clip.get_tokenizer(_MODEL_NAME)
     model = model.to(_device())
     model.eval()
-    return model, preprocess
+    return model, preprocess, tokenizer
 
 
 def embed_images(image_paths: Iterable[str], *, batch_size: int = 16) -> Dict[str, List[float]]:
@@ -37,7 +40,7 @@ def embed_images(image_paths: Iterable[str], *, batch_size: int = 16) -> Dict[st
     if not paths:
         return {}
 
-    model, preprocess = _load_model()
+    model, preprocess, _ = _load_model()
     device = _device()
     encoded: Dict[str, List[float]] = {}
 
@@ -77,3 +80,24 @@ def _encode_batch(
         encoded = F.normalize(encoded, dim=-1)
     for path, vector in zip(paths, encoded.cpu().tolist()):
         output[path] = vector
+
+
+def embed_text_for_images(queries: Iterable[str], *, batch_size: int = 32) -> List[List[float]]:
+    """Encode text queries into the CLIP image embedding space."""
+    texts = [query.strip() for query in queries if query and query.strip()]
+    if not texts:
+        return []
+
+    model, _, tokenizer = _load_model()
+    device = _device()
+    encoded_queries: List[List[float]] = []
+
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start : start + batch_size]
+        tokens = tokenizer(batch).to(device)
+        with torch.no_grad():
+            vectors = model.encode_text(tokens)
+            vectors = F.normalize(vectors, dim=-1)
+        encoded_queries.extend(vectors.cpu().tolist())
+
+    return encoded_queries

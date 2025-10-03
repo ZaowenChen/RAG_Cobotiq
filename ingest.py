@@ -13,12 +13,14 @@ from embeddings.image_embed import embed_images
 from embeddings.text_embed import embed_text
 from index.to_meilisearch import index_meilisearch
 from index.to_qdrant import index_qdrant
+from ingestion.docx_parser import parse_docx
 from ingestion.image_parser import parse_image
 from ingestion.normalize import normalize
 from ingestion.pdf_parser import parse_pdf
 from ingestion.pptx_parser import parse_pptx
 from ingestion.xlsx_parser import parse_xlsx
 from processing.chunker import chunk
+from processing.captions import generate_caption
 from processing.dedupe import drop_duplicates
 
 LOGGER = logging.getLogger("robot_rag.ingest")
@@ -28,6 +30,7 @@ _SUPPORTED_SUFFIXES = {
     ".pptx": parse_pptx,
     ".xlsx": parse_xlsx,
     ".xls": parse_xlsx,
+    ".docx": parse_docx,
     ".png": parse_image,
     ".jpg": parse_image,
     ".jpeg": parse_image,
@@ -76,14 +79,40 @@ def _apply_text_embeddings(elements: List[Dict[str, object]]) -> None:
 
 
 def _apply_image_embeddings(elements: List[Dict[str, object]]) -> None:
-    image_elements = [element for element in elements if element.get("image_path")]
+    image_elements = []
+    for element in elements:
+        path = element.get("image_path")
+        if not path:
+            continue
+        resolved = Path(str(path))
+        if not resolved.exists():
+            LOGGER.warning("Skipping image embedding; file missing: %s", resolved)
+            continue
+        image_elements.append((element, str(resolved)))
+
     if not image_elements:
         return
-    vectors = embed_images(element["image_path"] for element in image_elements)
-    for element in image_elements:
-        path = element.get("image_path")
+
+    vectors = embed_images(path for _, path in image_elements)
+    captions_cache: Dict[str, Dict[str, object]] = {}
+
+    for element, path in image_elements:
         if path in vectors:
             element["image_vector"] = vectors[path]
+
+        if path not in captions_cache:
+            caption_payload = generate_caption(
+                path,
+                image_sha256=str(element.get("image_sha256") or "") or None,
+                fallback_text=str(element.get("content_text") or "") or None,
+            )
+            captions_cache[path] = caption_payload
+
+        caption_payload = captions_cache[path]
+        for key in ("caption", "caption_model", "caption_source", "caption_confidence"):
+            value = caption_payload.get(key)
+            if value is not None:
+                element[key] = value
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

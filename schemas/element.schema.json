@@ -7,7 +7,7 @@
     "id": {"type":"string"},
     "doc_id": {"type":"string"},
     "doc_title": {"type":"string"},
-    "doc_type": {"enum":["pdf","pptx","xlsx","image"]},
+    "doc_type": {"enum":["pdf","pptx","xlsx","image","docx"]},
     "element_type": {"enum":["paragraph","step","table_row","figure","caption","note"]},
     "content_text": {"type":"string"},
     "robot_model": {"type":"string"},
@@ -21,6 +21,17 @@
     "source_uri": {"type":"string"},
     "text_vector": {"type":["array","null"],"items":{"type":"number"}},
     "image_vector": {"type":["array","null"],"items":{"type":"number"}},
-    "ocr_text": {"type":["string","null"]}
+    "ocr_text": {"type":["string","null"]},
+    "media_path": {"type":["string","null"]},
+    "image_path": {"type":["string","null"]},
+    "image_sha256": {"type":["string","null"]},
+    "image_width": {"type":["integer","null"]},
+    "image_height": {"type":["integer","null"]},
+    "image_mime_type": {"type":["string","null"]},
+    "caption": {"type":["string","null"]},
+    "caption_model": {"type":["string","null"]},
+    "caption_source": {"type":["string","null"]},
+    "caption_confidence": {"type":["number","null"]},
+    "alt_text": {"type":["string","null"]}
   }
 }
